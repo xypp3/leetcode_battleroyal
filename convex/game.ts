@@ -126,14 +126,10 @@ export const submitCode = mutation({
     if (isCompleted) {
       const newRoundsWon = (player.roundsWon || 0) + 1;
       
-      await ctx.db.patch(args.playerId, {
-        roundsWon: newRoundsWon,
-        timeRemaining: 300, // Reset timer for next round
-      });
-
       // Check if player won the game (3 rounds)
       if (newRoundsWon >= 3) {
         await ctx.db.patch(args.playerId, {
+          roundsWon: newRoundsWon,
           status: "winner",
         });
         
@@ -142,6 +138,21 @@ export const submitCode = mutation({
           status: "finished",
         });
       } else {
+        // Player completed a round but hasn't won yet
+        // Immediately assign them a new question so they can see it right away
+        const questions = await ctx.db.query("questions").collect();
+        const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+        
+        await ctx.db.patch(args.playerId, {
+          roundsWon: newRoundsWon,
+          timeRemaining: 300, // Reset timer
+          currentQuestionId: randomQuestion?.title || "Two Sum",
+          code: undefined, // Clear code so starter code loads
+          testsPassed: 0,
+          completionTime: undefined,
+          lastAttackTime: undefined,
+        });
+
         // Check if all other active players have also completed this round
         const allPlayers = await ctx.db
           .query("players")
@@ -308,28 +319,18 @@ export const nextRound = internalMutation({
       return;
     }
 
-    // Get all questions for new assignments
-    const questions = await ctx.db.query("questions").collect();
-
     await ctx.db.patch(args.roomId, {
       startTime: Date.now(),
       currentRound: (room.currentRound || 0) + 1,
     });
 
-    // Reset only the players who completed the previous round (status = "completed")
-    // All other active players keep their current state and challenge
+    // Transition "completed" players back to "playing"
+    // Their new question and reset code were already assigned in submitCode
     for (const player of activePlayers) {
       if (player.status === "completed") {
-        // This player just completed - give them a new challenge
-        const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+        // Just transition to playing - the new question was already assigned
         await ctx.db.patch(player._id, {
           status: "playing",
-          timeRemaining: 300, // Reset to 5 minutes
-          code: undefined,
-          testsPassed: 0,
-          completionTime: undefined,
-          lastAttackTime: undefined,
-          currentQuestionId: randomQuestion?.title || "Two Sum",
         });
       }
       // Players still working on their challenge keep their current state

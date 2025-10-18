@@ -74,8 +74,8 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
         setIsAttacked(true);
         setTimeRemaining(prev => Math.max(0, prev - attackOnMe.timeReduction));
         
-        // Reset animation after it completes
-        setTimeout(() => setIsAttacked(false), 1000);
+        // Reset animation after half a second
+        setTimeout(() => setIsAttacked(false), 500);
       }
     }
   }, [roomState.recentAttacks, playerId, lastAttackId]);
@@ -176,6 +176,18 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
 
   return (
     <div className="max-w-7xl mx-auto">
+      {/* Red border attack effect */}
+      {isAttacked && (
+        <div 
+          className="fixed inset-0 pointer-events-none animate-pulse"
+          style={{
+            boxShadow: 'inset 0 0 40px rgba(239, 68, 68, 0.6), inset 0 0 80px rgba(220, 38, 38, 0.4)',
+            zIndex: 40,
+            border: '2px solid rgb(239, 68, 68)',
+          }}
+        />
+      )}
+
       {/* Header */}
       <div className="bg-gray-800 rounded-lg p-4 mb-6">
         <div className="flex justify-between items-center">
