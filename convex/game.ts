@@ -153,13 +153,54 @@ export const submitCode = mutation({
           lastAttackTime: undefined,
         });
 
-        // Check if all other active players have also completed this round
+        // Automatically attack a random player
         const allPlayers = await ctx.db
           .query("players")
           .withIndex("by_room", (q) => q.eq("roomId", player.roomId))
           .collect();
 
-        const activePlayers = allPlayers.filter(p => 
+        const playingPlayers = allPlayers.filter(p => 
+          p.status === "playing" && p._id !== args.playerId
+        );
+
+        if (playingPlayers.length > 0) {
+          const randomTarget = playingPlayers[Math.floor(Math.random() * playingPlayers.length)];
+          
+          // Execute the attack
+          const newTimeRemaining = Math.max(0, (randomTarget.timeRemaining || 300) - 20);
+          
+          await ctx.db.patch(randomTarget._id, {
+            timeRemaining: newTimeRemaining,
+          });
+
+          await ctx.db.patch(args.playerId, {
+            lastAttackTime: Date.now(),
+          });
+
+          // Record the attack for animation
+          await ctx.db.insert("attacks", {
+            roomId: player.roomId,
+            attackerId: args.playerId,
+            targetId: randomTarget._id,
+            timestamp: Date.now(),
+            timeReduction: 20,
+          });
+
+          // If target runs out of time, eliminate them
+          if (newTimeRemaining <= 0) {
+            await ctx.db.patch(randomTarget._id, {
+              status: "eliminated",
+            });
+          }
+        }
+
+        // Check if all other active players have also completed this round
+        const allPlayersUpdated = await ctx.db
+          .query("players")
+          .withIndex("by_room", (q) => q.eq("roomId", player.roomId))
+          .collect();
+
+        const activePlayers = allPlayersUpdated.filter(p => 
           p.status !== "eliminated" && p.status !== "winner"
         );
 

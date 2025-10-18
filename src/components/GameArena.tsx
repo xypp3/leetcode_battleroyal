@@ -19,7 +19,6 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
   const [lastAttackId, setLastAttackId] = useState<string | null>(null);
 
   const submitCode = useMutation(api.game.submitCode);
-  const attackPlayer = useMutation(api.game.attackPlayer);
   const updatePlayerTime = useMutation(api.game.updatePlayerTime);
 
   const currentPlayer = roomState.players.find((p: any) => p._id === playerId);
@@ -138,14 +137,6 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
     setIsRunning(false);
   };
 
-  const handleAttack = async (targetId: Id<"players">) => {
-    try {
-      await attackPlayer({ attackerId: playerId, targetId });
-    } catch (error) {
-      console.error("Attack failed:", error);
-    }
-  };
-
   if (!question) {
     return (
       <div className="text-center">
@@ -163,10 +154,6 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
 
   const passedTests = testResults.filter(r => r.passed).length;
   const totalTests = question.testCases.length;
-  const canAttack = currentPlayer?.status === "completed" && 
-                   (!currentPlayer?.lastAttackTime || 
-                    !currentPlayer?.completionTime ||
-                    currentPlayer.lastAttackTime < currentPlayer.completionTime);
 
   const getTimeColor = () => {
     if (timeRemaining <= 30) return "text-red-400";
@@ -295,25 +282,12 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
                           </div>
                         )}
                       </div>
-                      {canAttack && player._id !== playerId && player.status === "playing" && (
-                        <button
-                          onClick={() => handleAttack(player._id)}
-                          className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm font-semibold transition-colors"
-                        >
-                          ⚔️ Attack
-                        </button>
-                      )}
+                      {/* Attack button removed - attacks now happen automatically */}
                     </div>
                   </div>
                 ))}
             </div>
-            {canAttack && (
-              <div className="mt-4 p-3 bg-red-900/30 border border-red-500 rounded">
-                <p className="text-red-400 text-sm">
-                  🗡️ You can attack other players! Reduce their time by 20 seconds.
-                </p>
-              </div>
-            )}
+            {/* Attack info removed - attacks now happen automatically on completion */}
           </div>
         </div>
 
