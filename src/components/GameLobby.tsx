@@ -13,7 +13,7 @@ export function GameLobby() {
 
   const createRoom = useMutation(api.game.createRoom);
   const seedQuestions = useMutation(api.game.seedQuestions);
-  const roomState = useQuery(api.game.getRoomState, roomId ? { roomId } : "skip");
+  const roomState = useQuery(api.game.getRoomState, roomId && playerId ? { roomId, playerId } : "skip");
 
   useEffect(() => {
     // Seed questions on component mount

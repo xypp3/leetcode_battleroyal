@@ -23,6 +23,7 @@ const applicationTables = {
     roundsWon: v.optional(v.number()),
     timeRemaining: v.optional(v.number()),
     lastAttackTime: v.optional(v.number()),
+    currentQuestionId: v.optional(v.string()),
   }).index("by_room", ["roomId"]),
 
   questions: defineTable({
