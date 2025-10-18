@@ -124,96 +124,97 @@ export const submitCode = mutation({
 
     // If player completed the round
     if (isCompleted) {
-      const newRoundsWon = (player.roundsWon || 0) + 1;
-      
-      // Check if player won the game (3 rounds)
-      if (newRoundsWon >= 3) {
-        await ctx.db.patch(args.playerId, {
-          roundsWon: newRoundsWon,
-          status: "winner",
-        });
+      // Get all other active players to potentially attack
+      const allPlayers = await ctx.db
+        .query("players")
+        .withIndex("by_room", (q) => q.eq("roomId", player.roomId))
+        .collect();
+
+      const activePlayers = allPlayers.filter(p => 
+        p.status !== "eliminated" && p._id !== args.playerId
+      );
+
+      // Randomly attack another active player
+      if (activePlayers.length > 0) {
+        const targetIndex = Math.floor(Math.random() * activePlayers.length);
+        const target = activePlayers[targetIndex];
         
-        // End the game
-        await ctx.db.patch(player.roomId, {
-          status: "finished",
-        });
-      } else {
-        // Player completed a round but hasn't won yet
-        // Immediately assign them a new question so they can see it right away
-        const questions = await ctx.db.query("questions").collect();
-        const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+        // Reduce target's time by 20 seconds
+        const newTimeRemaining = Math.max(0, (target.timeRemaining || 300) - 20);
         
-        await ctx.db.patch(args.playerId, {
-          roundsWon: newRoundsWon,
-          timeRemaining: 300, // Reset timer
-          currentQuestionId: randomQuestion?.title || "Two Sum",
-          code: undefined, // Clear code so starter code loads
-          testsPassed: 0,
-          completionTime: undefined,
-          lastAttackTime: undefined,
+        await ctx.db.patch(target._id, {
+          timeRemaining: newTimeRemaining,
         });
 
-        // Automatically attack a random player
-        const allPlayers = await ctx.db
-          .query("players")
-          .withIndex("by_room", (q) => q.eq("roomId", player.roomId))
-          .collect();
+        // Record the attack for animation
+        await ctx.db.insert("attacks", {
+          roomId: player.roomId,
+          attackerId: args.playerId,
+          targetId: target._id,
+          timestamp: Date.now(),
+          timeReduction: 20,
+        });
 
-        const playingPlayers = allPlayers.filter(p => 
-          p.status === "playing" && p._id !== args.playerId
-        );
+        // If target runs out of time, eliminate them
+        if (newTimeRemaining <= 0) {
+          await ctx.db.patch(target._id, {
+            status: "eliminated",
+          });
 
-        if (playingPlayers.length > 0) {
-          const randomTarget = playingPlayers[Math.floor(Math.random() * playingPlayers.length)];
+          // Check if only one player remains
+          const remainingPlayers = allPlayers.filter(p => 
+            p.status !== "eliminated" && p._id !== target._id && p._id !== args.playerId
+          );
           
-          // Execute the attack
-          const newTimeRemaining = Math.max(0, (randomTarget.timeRemaining || 300) - 20);
-          
-          await ctx.db.patch(randomTarget._id, {
-            timeRemaining: newTimeRemaining,
-          });
-
-          await ctx.db.patch(args.playerId, {
-            lastAttackTime: Date.now(),
-          });
-
-          // Record the attack for animation
-          await ctx.db.insert("attacks", {
-            roomId: player.roomId,
-            attackerId: args.playerId,
-            targetId: randomTarget._id,
-            timestamp: Date.now(),
-            timeReduction: 20,
-          });
-
-          // If target runs out of time, eliminate them
-          if (newTimeRemaining <= 0) {
-            await ctx.db.patch(randomTarget._id, {
-              status: "eliminated",
+          if (remainingPlayers.length === 0) {
+            // Current player is the winner
+            await ctx.db.patch(args.playerId, {
+              status: "winner",
             });
+            
+            await ctx.db.patch(player.roomId, {
+              status: "finished",
+            });
+            return { success: true };
           }
         }
+      }
 
-        // Check if all other active players have also completed this round
-        const allPlayersUpdated = await ctx.db
-          .query("players")
-          .withIndex("by_room", (q) => q.eq("roomId", player.roomId))
-          .collect();
+      // Get a new random question for the player
+      const questions = await ctx.db.query("questions").collect();
+      const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+      
+      // Clear all data and assign new question
+      await ctx.db.patch(args.playerId, {
+        roundsWon: (player.roundsWon || 0) + 1,
+        timeRemaining: 300, // Reset timer
+        currentQuestionId: randomQuestion?.title || "Two Sum",
+        code: undefined, // Clear code so starter code loads
+        testsPassed: 0,
+        completionTime: undefined,
+        lastAttackTime: undefined,
+        status: "playing",
+      });
 
-        const activePlayers = allPlayersUpdated.filter(p => 
-          p.status !== "eliminated" && p.status !== "winner"
-        );
+      // Check if all other active players have also completed this round
+      const allPlayersAfterAttack = await ctx.db
+        .query("players")
+        .withIndex("by_room", (q) => q.eq("roomId", player.roomId))
+        .collect();
 
-        const allCompleted = activePlayers.every(p =>
-          p._id === args.playerId || p.status === "completed"
-        );
+      const activePlayersAfterAttack = allPlayersAfterAttack.filter(p => 
+        p.status !== "eliminated" && p.status !== "winner"
+      );
 
-        // If all remaining players have completed, move to next round
-        if (allCompleted && activePlayers.length > 1) {
-          await ctx.scheduler.runAfter(5000, internal.game.nextRound, { 
-            roomId: player.roomId 
-          });
-        }
+      const allCompleted = activePlayersAfterAttack.every(p =>
+        p._id === args.playerId || p.status === "completed"
+      );
+
+      // If all remaining players have completed, move to next round
+      if (allCompleted && activePlayersAfterAttack.length > 1) {
+        await ctx.scheduler.runAfter(5000, internal.game.nextRound, { 
+          roomId: player.roomId 
+        });
       }
     }
 
@@ -371,6 +372,7 @@ export const nextRound = internalMutation({
       if (player.status === "completed") {
         // Just transition to playing - the new question was already assigned
         await ctx.db.patch(player._id, {
+          timeRemaining: 300,
           status: "playing",
         });
       }

@@ -63,6 +63,13 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
     }
   }, [currentPlayer?.status, currentPlayer?.timeRemaining, playerId, updatePlayerTime]);
 
+  // Sync local timer state when backend timer resets
+  useEffect(() => {
+    if (currentPlayer?.timeRemaining === 300 && timeRemaining < 250) {
+      setTimeRemaining(300);
+    }
+  }, [currentPlayer?.timeRemaining, timeRemaining]);
+
   // Check for attacks
   useEffect(() => {
     if (roomState.recentAttacks) {
@@ -187,17 +194,11 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
                 {question.difficulty}
               </span>
               <span className="text-gray-400">
-                Round {roomState.room.currentRound || 1}/3
-              </span>
-              <span className="text-gray-400">
-                Wins: {currentPlayer?.roundsWon || 0}/3
+                Players Remaining: {roomState.players.filter((p: any) => p.status !== "eliminated").length}
               </span>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-yellow-400">
-              ⏱️ {formatTime(gameTime)}
-            </div>
             <div className={`text-3xl font-bold transition-all duration-300 ${getTimeColor()} ${
               isAttacked ? 'animate-pulse scale-125 text-red-500' : ''
             }`}>
@@ -259,7 +260,7 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
                       <span>{player.name}</span>
                       {player._id === playerId && <span className="text-yellow-400">(You)</span>}
                       <span className="text-sm text-gray-400">
-                        ({player.roundsWon || 0}/3 wins)
+                        ({player.roundsWon || 0} challenges)
                       </span>
                     </div>
                     <div className="flex items-center space-x-3">
@@ -345,10 +346,9 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
           {/* Status Messages */}
           {currentPlayer?.status === "completed" && (
             <div className="bg-green-900/50 border border-green-500 rounded-lg p-6 text-center">
-              <h2 className="text-2xl font-bold text-green-400 mb-2">🎉 ROUND COMPLETED!</h2>
+              <h2 className="text-2xl font-bold text-green-400 mb-2">🎉 PROBLEM SOLVED!</h2>
               <p className="text-gray-300">
-                Round {currentPlayer.roundsWon || 0}/3 won! 
-                {(currentPlayer.roundsWon || 0) < 3 ? " Next round starting soon..." : " You are the CHAMPION! 👑"}
+                Problems Solved: {currentPlayer.roundsWon || 0}. Next challenge incoming...
               </p>
             </div>
           )}
@@ -364,9 +364,9 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
 
           {currentPlayer?.status === "winner" && (
             <div className="bg-purple-900/50 border border-purple-500 rounded-lg p-6 text-center">
-              <h2 className="text-3xl font-bold text-purple-400 mb-2">👑 CHAMPION!</h2>
+              <h2 className="text-3xl font-bold text-purple-400 mb-2">👑 LAST PLAYER STANDING!</h2>
               <p className="text-gray-300">
-                Congratulations! You won 3 rounds and are the Battle Royale Champion!
+                Congratulations! You defeated all opponents and solved {currentPlayer.roundsWon || 0} problems!
               </p>
             </div>
           )}
