@@ -24,11 +24,13 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
   const currentPlayer = roomState.players.find((p: any) => p._id === playerId);
   const question = roomState.question;
 
+  // Load starter code when question changes
   useEffect(() => {
-    if (question && !code) {
+    if (question) {
       setCode(question.starterCode);
+      setTestResults([]);
     }
-  }, [question, code]);
+  }, [question?.title]);
 
   useEffect(() => {
     if (roomState.room.startTime) {
