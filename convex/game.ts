@@ -2,6 +2,9 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
+// Configuration - Edit this for testing different time limits
+const MAX_TIME_REMAINING = 60; // 5 minutes in seconds
+
 export const createRoom = mutation({
   args: { playerName: v.string() },
   handler: async (ctx, args) => {
@@ -44,7 +47,7 @@ export const createRoom = mutation({
       name: args.playerName,
       status: "waiting",
       roundsWon: 0,
-      timeRemaining: 300, // 5 minutes in seconds
+      timeRemaining: MAX_TIME_REMAINING,
     });
 
     // Check if room should start (2+ players for demo, normally would be more)
@@ -164,7 +167,7 @@ export const attackPlayer = mutation({
     }
 
     // Reduce target's time by 20 seconds
-    const newTimeRemaining = Math.max(0, (target.timeRemaining || 300) - 20);
+    const newTimeRemaining = Math.max(0, (target.timeRemaining || MAX_TIME_REMAINING) - 20);
     
     await ctx.db.patch(args.targetId, {
       timeRemaining: newTimeRemaining,
@@ -244,7 +247,7 @@ export const startGame = internalMutation({
       const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
       await ctx.db.patch(player._id, { 
         status: "playing",
-        timeRemaining: 300, // 5 minutes
+        timeRemaining: MAX_TIME_REMAINING,
         roundsWon: 0,
         currentQuestionId: randomQuestion?.title || "Two Sum",
       });
@@ -285,7 +288,7 @@ export const nextRound = internalMutation({
       if (player.status === "completed") {
         // Just transition to playing - the new question was already assigned
         await ctx.db.patch(player._id, {
-          timeRemaining: 300,
+          timeRemaining: MAX_TIME_REMAINING,
           status: "playing",
         });
       }
@@ -422,7 +425,7 @@ export const performRandomAttack = internalMutation({
       const target = activePlayers[targetIndex];
       
       // Reduce target's time by 20 seconds
-      const newTimeRemaining = Math.max(0, (target.timeRemaining || 300) - 20);
+      const newTimeRemaining = Math.max(0, (target.timeRemaining || MAX_TIME_REMAINING) - 20);
       
       await ctx.db.patch(target._id, {
         timeRemaining: newTimeRemaining,
@@ -470,7 +473,7 @@ export const performRandomAttack = internalMutation({
     const currentPlayer = await ctx.db.get(args.playerId);
     await ctx.db.patch(args.playerId, {
       roundsWon: (currentPlayer?.roundsWon || 0) + 1,
-      timeRemaining: 300, // Reset timer
+      timeRemaining: MAX_TIME_REMAINING, // Reset timer
       currentQuestionId: randomQuestion?.title || "Two Sum",
       code: undefined, // Clear code so starter code loads
       testsPassed: 0,
