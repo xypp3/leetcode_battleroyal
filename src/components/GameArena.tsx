@@ -38,20 +38,6 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
   const currentPlayer = roomState.players.find((p: any) => p._id === playerId);
   const question = roomState.question;
   
-  // Early exit if player is eliminated
-  if (currentPlayer?.status === "eliminated") {
-    return (
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-red-900/50 border border-red-500 rounded-lg p-6 text-center mt-20">
-          <h2 className="text-2xl font-bold text-red-400 mb-2">💀 ELIMINATED!</h2>
-          <p className="text-gray-300">
-            Time ran out! Better luck next time.
-          </p>
-        </div>
-      </div>
-    );
-  }
-  
   // Determine if current player is the winner
   const isWinner = winnerStatus && 
     winnerStatus.isGameOver && 
@@ -142,6 +128,32 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
     }
   }, [roomState.recentAttacks, playerId, lastAttackId]);
 
+  // Early exit if player is eliminated
+  if (currentPlayer?.status === "eliminated") {
+    return (
+      <div>
+        {/* Blur backdrop */}
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" />
+        
+        {/* Eliminated screen */}
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div className="bg-gradient-to-br from-red-900 via-red-800 to-red-900 border-2 border-red-400 rounded-2xl p-8 text-center max-w-2xl shadow-2xl">
+            <div className="mb-4 text-6xl">📋</div>
+            <h2 className="text-5xl font-bold text-red-300 mb-4 drop-shadow-lg">
+              Thank you for your interest but
+            </h2>
+            <p className="text-xl text-red-200 mb-4 drop-shadow-md">
+              ... your resume was not selected for the next round.
+            </p>
+            <p className="text-lg text-gray-100">
+              Keep coding and try again! 💪
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const runTests = () => {
     if (!question || !code) return;
 
@@ -230,14 +242,13 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
           <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-purple-900 border-2 border-yellow-400 rounded-2xl p-8 text-center max-w-2xl shadow-2xl animate-bounce">
             <div className="mb-4 text-6xl animate-pulse">👑</div>
             <h2 className="text-5xl font-bold text-yellow-300 mb-4 drop-shadow-lg animate-pulse">
-              LAST PLAYER STANDING!
+              YOU GOT THE INTERNSHIP!
             </h2>
             <p className="text-xl text-yellow-200 mb-2 drop-shadow-md">
-              🎉 VICTORY! 🎉
+              🎉 Welcome to family! 🎉
             </p>
             <p className="text-lg text-gray-100">
-              You defeated all opponents and solved <span className="text-yellow-300 font-bold text-xl">{currentPlayer.roundsWon || 0}</span> problems!
-            </p>
+              You defeated all opponents and passed <span className="text-yellow-300 font-bold text-xl">{currentPlayer.roundsWon || 0}</span> rounds of interviews!</p>
             <div className="mt-6 text-4xl">🏆 ⭐ 🏆</div>
           </div>
         </div>
