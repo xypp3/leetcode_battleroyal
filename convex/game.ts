@@ -3,7 +3,38 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
 // Configuration - Edit this for testing different time limits
-const MAX_TIME_REMAINING = 60; // 5 minutes in seconds
+const MAX_TIME_REMAINING = 40; // 5 minutes in seconds
+
+export const checkWinnerStatus = query({
+  args: { roomId: v.id("rooms") },
+  returns: v.object({
+    activePlayers: v.array(v.object({
+      _id: v.id("players"),
+      name: v.string(),
+      status: v.string(),
+      roundsWon: v.optional(v.number()),
+    })),
+    isGameOver: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const players = await ctx.db
+      .query("players")
+      .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
+      .collect();
+
+    const activePlayers = players.filter(p => p.status !== "eliminated");
+    
+    return {
+      activePlayers: activePlayers.map(p => ({
+        _id: p._id,
+        name: p.name,
+        status: p.status,
+        roundsWon: p.roundsWon,
+      })),
+      isGameOver: activePlayers.length === 1,
+    };
+  },
+});
 
 export const createRoom = mutation({
   args: { playerName: v.string() },
@@ -446,13 +477,13 @@ export const performRandomAttack = internalMutation({
           status: "eliminated",
         });
 
-        // Check if only one player remains
+        // Check if only one player remains (after eliminating target)
         const remainingPlayers = allPlayers.filter(p => 
-          p.status !== "eliminated" && p._id !== target._id && p._id !== args.playerId
+          p.status !== "eliminated" && p._id !== target._id
         );
         
-        if (remainingPlayers.length === 0) {
-          // Current player is the winner
+        if (remainingPlayers.length === 1) {
+          // Current player is the winner - they're the last one standing
           await ctx.db.patch(args.playerId, {
             status: "winner",
           });

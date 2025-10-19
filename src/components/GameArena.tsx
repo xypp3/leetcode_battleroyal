@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { CodeEditor } from "./CodeEditor";
 import { Id } from "../../convex/_generated/dataModel";
@@ -7,6 +7,14 @@ import { Id } from "../../convex/_generated/dataModel";
 interface GameArenaProps {
   roomState: any;
   playerId: Id<"players">;
+}
+
+interface Confetti {
+  id: number;
+  left: number;
+  delay: number;
+  duration: number;
+  color: string;
 }
 
 export function GameArena({ roomState, playerId }: GameArenaProps) {
@@ -17,12 +25,38 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
   const [timeRemaining, setTimeRemaining] = useState(300);
   const [isAttacked, setIsAttacked] = useState(false);
   const [lastAttackId, setLastAttackId] = useState<string | null>(null);
+  const [confetti, setConfetti] = useState<Confetti[]>([]);
 
   const submitCode = useMutation(api.game.submitCode);
   const updatePlayerTime = useMutation(api.game.updatePlayerTime);
+  
+  // Query to check winner status
+  const winnerStatus = useQuery(api.game.checkWinnerStatus, {
+    roomId: roomState.room._id,
+  });
 
   const currentPlayer = roomState.players.find((p: any) => p._id === playerId);
   const question = roomState.question;
+  
+  // Early exit if player is eliminated
+  if (currentPlayer?.status === "eliminated") {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-red-900/50 border border-red-500 rounded-lg p-6 text-center mt-20">
+          <h2 className="text-2xl font-bold text-red-400 mb-2">💀 ELIMINATED!</h2>
+          <p className="text-gray-300">
+            Time ran out! Better luck next time.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Determine if current player is the winner
+  const isWinner = winnerStatus && 
+    winnerStatus.isGameOver && 
+    winnerStatus.activePlayers.length === 1 &&
+    winnerStatus.activePlayers[0]._id === playerId;
 
   // Load starter code when question changes
   useEffect(() => {
@@ -69,6 +103,26 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
       setTimeRemaining(300);
     }
   }, [currentPlayer?.timeRemaining, timeRemaining]);
+
+  // Trigger confetti when player wins
+  useEffect(() => {
+    if (isWinner && confetti.length === 0) {
+      const confettiPieces: Confetti[] = [];
+      const colors = ["#fbbf24", "#60a5fa", "#34d399", "#f87171", "#c084fc", "#fb7185"];
+      
+      for (let i = 0; i < 50; i++) {
+        confettiPieces.push({
+          id: i,
+          left: Math.random() * 100,
+          delay: Math.random() * 0.3,
+          duration: 2 + Math.random() * 1,
+          color: colors[Math.floor(Math.random() * colors.length)],
+        });
+      }
+      
+      setConfetti(confettiPieces);
+    }
+  }, [isWinner, confetti.length]);
 
   // Check for attacks
   useEffect(() => {
@@ -145,6 +199,51 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
 
     setIsRunning(false);
   };
+
+  // Early return if player has won - only show celebration
+  if (isWinner) {
+    return (
+      <div>
+        {/* Blur backdrop */}
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" />
+        
+        {/* Confetti particles */}
+        {confetti.map((particle) => (
+          <div
+            key={particle.id}
+            className="fixed pointer-events-none"
+            style={{
+              left: `${particle.left}%`,
+              top: "-20px",
+              width: "10px",
+              height: "10px",
+              backgroundColor: particle.color,
+              borderRadius: "50%",
+              animation: `fall ${particle.duration}s linear ${particle.delay}s forwards`,
+              zIndex: 51,
+            }}
+          />
+        ))}
+        
+        {/* Winner celebration message */}
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-purple-900 border-2 border-yellow-400 rounded-2xl p-8 text-center max-w-2xl shadow-2xl animate-bounce">
+            <div className="mb-4 text-6xl animate-pulse">👑</div>
+            <h2 className="text-5xl font-bold text-yellow-300 mb-4 drop-shadow-lg animate-pulse">
+              LAST PLAYER STANDING!
+            </h2>
+            <p className="text-xl text-yellow-200 mb-2 drop-shadow-md">
+              🎉 VICTORY! 🎉
+            </p>
+            <p className="text-lg text-gray-100">
+              You defeated all opponents and solved <span className="text-yellow-300 font-bold text-xl">{currentPlayer.roundsWon || 0}</span> problems!
+            </p>
+            <div className="mt-6 text-4xl">🏆 ⭐ 🏆</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!question) {
     return (
@@ -358,15 +457,6 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
               <h2 className="text-2xl font-bold text-red-400 mb-2">💀 ELIMINATED!</h2>
               <p className="text-gray-300">
                 Time ran out! Better luck next time.
-              </p>
-            </div>
-          )}
-
-          {currentPlayer?.status === "winner" && (
-            <div className="bg-purple-900/50 border border-purple-500 rounded-lg p-6 text-center">
-              <h2 className="text-3xl font-bold text-purple-400 mb-2">👑 LAST PLAYER STANDING!</h2>
-              <p className="text-gray-300">
-                Congratulations! You defeated all opponents and solved {currentPlayer.roundsWon || 0} problems!
               </p>
             </div>
           )}
