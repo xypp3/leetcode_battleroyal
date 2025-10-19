@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
 // Configuration - Edit this for testing different time limits
-const MAX_TIME_REMAINING = 40; // 5 minutes in seconds
+const MAX_TIME_REMAINING = 240; // 5 minutes in seconds
 
 export const checkWinnerStatus = query({
   args: { roomId: v.id("rooms") },
