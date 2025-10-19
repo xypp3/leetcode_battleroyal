@@ -138,6 +138,7 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
         {/* Eliminated screen */}
         <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
           <div className="bg-gradient-to-br from-red-900 via-red-800 to-red-900 border-2 border-red-400 rounded-2xl p-8 text-center max-w-2xl shadow-2xl">
+            <div className="mb-2 text-sm text-red-300 font-semibold">Interview Battle Royale</div>
             <div className="mb-4 text-6xl">📋</div>
             <h2 className="text-5xl font-bold text-red-300 mb-4 drop-shadow-lg">
               Thank you for your interest but
@@ -240,6 +241,7 @@ export function GameArena({ roomState, playerId }: GameArenaProps) {
         {/* Winner celebration message */}
         <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
           <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-purple-900 border-2 border-yellow-400 rounded-2xl p-8 text-center max-w-2xl shadow-2xl animate-bounce">
+            <div className="mb-2 text-sm text-yellow-300 font-semibold">Interview Battle Royale</div>
             <div className="mb-4 text-6xl animate-pulse">👑</div>
             <h2 className="text-5xl font-bold text-yellow-300 mb-4 drop-shadow-lg animate-pulse">
               YOU GOT THE INTERNSHIP!

@@ -45,7 +45,7 @@ export function WaitingRoom({ roomState }: WaitingRoomProps) {
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-yellow-400 mb-4">
-          🏟️ Battle Arena
+          🏟️ Interview Battle Royale
         </h1>
         <p className="text-xl text-gray-300">
           Waiting for warriors to join the battle...

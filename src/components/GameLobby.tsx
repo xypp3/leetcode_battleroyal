@@ -38,7 +38,7 @@ export function GameLobby() {
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <div className="bg-gray-800 rounded-lg p-8 max-w-md w-full">
           <h2 className="text-3xl font-bold text-yellow-400 mb-6 text-center">
-            Choose Your Battle Name
+            Interview Battle Royale
           </h2>
           <div className="space-y-4">
             <input

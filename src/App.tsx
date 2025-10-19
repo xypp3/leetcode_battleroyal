@@ -10,7 +10,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-900 text-white">
       <header className="sticky top-0 z-10 bg-gray-800/80 backdrop-blur-sm h-16 flex justify-between items-center border-b border-gray-700 shadow-sm px-4">
-        <h2 className="text-xl font-bold text-yellow-400">⚔️ LeetCode Battle Royale</h2>
+        <h2 className="text-xl font-bold text-yellow-400">⚔️ Interview Battle Royale</h2>
         <SignOutButton />
       </header>
       <main className="flex-1 flex items-center justify-center p-8">
@@ -42,7 +42,7 @@ function Content() {
   return (
     <div className="flex flex-col gap-8 text-center">
       <div>
-        <h1 className="text-6xl font-bold text-yellow-400 mb-4">⚔️ Battle Royale</h1>
+        <h1 className="text-6xl font-bold text-yellow-400 mb-4">⚔️ Interview Battle Royale</h1>
         <p className="text-2xl text-gray-300 mb-2">Compete in real-time coding challenges!</p>
         <p className="text-lg text-gray-400">
           Join a room, wait for other players, and solve LeetCode problems faster than everyone else!
